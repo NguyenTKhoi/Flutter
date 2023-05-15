@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-
-import 'addTaks.dart';
+import 'package:todolist/addTasks.dart';
+import './Icons/flutter_icons.dart';
 
 void main() {
   runApp(const MyApp());
@@ -32,34 +32,37 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
-    setState(() {
-      _counter++;
-    });
-  }
-
   void _Reprint(String name) {
     setState(() {
       newItemCard.add(_buildItemCard(Icons.coffee, name, '0 Task'));
     });
   }
 
+  List<String> catalog = [];
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: Icon(Icons.list),
+        leading: IconButton(
+          onPressed: () async {
+            String Name = await _showTextEntryDialog(context,catalog) as String;
+            if (Name != '') {
+              _Reprint(Name);
+              catalog.add(Name);
+            }
+          },
+          icon: Icon(Icons.list),
+        ),
         title: Text(widget.title),
       ),
       body: _buildGridview(),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
-          String Name = await _showTextEntryDialog(context) as String;
-          if (Name != '') {
-            _Reprint(Name);
-          }
+          // String Name = await _showTextEntryDialog(context) as String;
+          // if (Name != '') {
+          //   _Reprint(Name);
+          // }
+          Navigator.of(context).push(_createRoute(catalog));
         },
         child: Icon(Icons.add),
       ),
@@ -71,37 +74,44 @@ class _MyHomePageState extends State<MyHomePage> {
 
 Container _buildItemCard(IconData icon, String name, String detail) {
   return Container(
+      width: 200,
+      height: 200,
+      padding: EdgeInsets.fromLTRB(10, 5, 10, 20),
       child: Card(
-    margin: EdgeInsets.all(10),
-    child: Column(
-      mainAxisAlignment: MainAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(
-          icon,
-          color: Colors.blue,
-          size: 50,
-        ),
-        SizedBox(
-          height: 20,
-        ),
-        Padding(
-          padding: EdgeInsets.fromLTRB(0, 0, 0, 10),
-          child: Text(
-            '$name',
-            style: TextStyle(
-              fontSize: 20,
+        elevation: 20,
+        margin: EdgeInsets.all(10),
+        color: Colors.lightGreenAccent,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              height: 20,
             ),
-          ),
+            Icon(
+              icon,
+              size: 50,
+            ),
+            SizedBox(
+              height: 20,
+            ),
+            Padding(
+              padding: EdgeInsets.fromLTRB(0, 0, 0, 10),
+              child: Text(
+                '$name',
+                style: TextStyle(
+                  fontSize: 20,
+                ),
+              ),
+            ),
+            Text('$detail'),
+          ],
         ),
-        Text('$detail'),
-      ],
-    ),
-  ));
+      ));
 }
 
 List<Widget> newItemCard = [
-  _buildItemCard(Icons.co_present, 'All', '24 Tasks'),
+  _buildItemCard(MyFlutterApp.home, 'All', '24 Tasks'),
 ];
 Widget _buildGrid() => GridView.extent(
       maxCrossAxisExtent: 200,
@@ -136,12 +146,12 @@ Widget _buildGridview() => GridView.builder(
       },
     );
 
-Route _createRoute() {
+Route _createRoute(List<String> catalog) {
   return PageRouteBuilder(
     pageBuilder: (BuildContext context,
         Animation<double> animation, //
         Animation<double> secondaryAnimation) {
-      return addtaks();
+      return addtasks( items:catalog);
     },
     transitionsBuilder: (BuildContext context,
         Animation<double> animation, //
@@ -164,83 +174,9 @@ Route _createRoute() {
   );
 }
 
-showAddDialog(BuildContext context) {
-  String inputText = '';
-  return AlertDialog(
-    title: Text('Input SomeThing'),
-    content: TextField(
-      decoration: InputDecoration(
-        border: OutlineInputBorder(),
-      ),
-      autofocus: true,
-      onChanged: (value) {
-        inputText = value;
-      },
-    ),
-    actions: <Widget>[
-      TextButton(
-          onPressed: () {
-            Navigator.of(context).pop();
-          },
-          child: Text('Cancel')),
-      TextButton(
-          onPressed: () {
-            Navigator.of(context).pop();
-          },
-          child: Text('Select')),
-    ],
-  );
-}
 
-// Future<NameTask> futureValue = showAddDialog(
-//     context: context,
-//     builder: (BuildContext context) {
-//       return dialog;
-//     }
-// );
 
-// Future<String> _showTextEntryDialog(BuildContext context) async {
-//   String inputText = '';
-//
-//   await showDialog(
-//     context: context,
-//     builder: (BuildContext context) {
-//       return AlertDialog(
-//         title: Text('Input Something'),
-//         content: TextField(
-//           decoration: InputDecoration(
-//             border: OutlineInputBorder(),
-//
-//           ),
-//           autofocus: true,
-//           onChanged: (value) {
-//             inputText = value;
-//           },
-//         ),
-//         actions: <Widget>[
-//           TextButton(
-//             child: Text('Cancel'),
-//             onPressed: () {
-//               Navigator.of(context).pop();
-//             },
-//           ),
-//           TextButton(
-//             child: Text('Select'),
-//             onPressed: () {
-//               //newItemCard.add(_buildItemCard(Icons.coffee, inputText, '0 Task'));
-//               if(inputText != ''){
-//               Navigator.of(context).pop(inputText);
-//               }
-//             },
-//           ),
-//         ],
-//       );
-//     },
-//   );
-//   return inputText;
-// }
-
-Future<String> _showTextEntryDialog(BuildContext context) async {
+Future<String> _showTextEntryDialog(BuildContext context, List<String> catalog) async {
   String inputText = '';
   String errorMessage = '';
 
@@ -250,7 +186,7 @@ Future<String> _showTextEntryDialog(BuildContext context) async {
       return StatefulBuilder(
         builder: (BuildContext context, StateSetter setState) {
           return AlertDialog(
-            title: Text('Input Something'),
+            title: Text('Input Catalog'),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -284,7 +220,13 @@ Future<String> _showTextEntryDialog(BuildContext context) async {
                 child: Text('Select'),
                 onPressed: () {
                   if (inputText.isNotEmpty) {
-                    Navigator.of(context).pop(inputText);
+                    if(catalog.contains(inputText)){
+                      setState(() {
+                        errorMessage = 'Already have this catalog';
+                      });
+                    } else {
+                      Navigator.of(context).pop(inputText);
+                    }
                   } else {
                     setState(() {
                       errorMessage = 'Please do not leave it blank';
@@ -299,4 +241,14 @@ Future<String> _showTextEntryDialog(BuildContext context) async {
     },
   );
   return inputText;
+}
+
+class CustomIcons {
+  CustomIcons._();
+
+  static const _kFontFam = 'MyFlutterApp';
+  static const String? _kFontPkg = null;
+
+  static const IconData pill =
+      IconData(0xea60, fontFamily: _kFontFam, fontPackage: _kFontPkg);
 }
