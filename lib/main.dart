@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:todolist/DetailScreen.dart';
 import 'package:todolist/addTasks.dart';
 import './Icons/flutter_icons.dart';
+import 'database/sqlite_database.dart';
 
-void main() {
+Future<void> main() async {
+  final _sqliteService = SqliteService();
+
   runApp(const MyApp());
 }
 
@@ -32,30 +36,137 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  void _Reprint(String name) {
+  SqliteService db = SqliteService();
+
+  void deleteItem(int index) {
     setState(() {
-      newItemCard.add(_buildItemCard(Icons.coffee, name, '0 Task'));
+      catalog.removeAt(index);
     });
   }
 
+  void showConfirmationDialog(BuildContext context, String title, String message, VoidCallback onConfirm,String name) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(title),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text('No'),
+            ),
+            TextButton(
+              onPressed: () {
+                db.deleteItemByCatalogName(name);
+                onConfirm();
+                Navigator.of(context).pop();
+              },
+              child: Text('Yes'),
+            ),
+          ],
+        );
+      },
+    );
+  }
   List<String> catalog = [];
+
+  List<Widget> buildGridItems(BuildContext context) {
+    List<Widget> gridItems = [];
+    for (int i = 0; i < catalog.length; i++) {
+      Widget item = buildItemCard(
+        context,
+        Icons.ac_unit, // Replace with the desired icon
+        catalog[i],
+        'Detail for ${catalog[i]}', // Replace with the desired detail
+            () => deleteItem(i),
+      );
+      gridItems.add(item);
+    }
+
+    return gridItems;
+  }
+
+  Container buildItemCard(BuildContext context, IconData icon, String name, String detail , VoidCallback onDelete,) {
+    return Container(
+      width: 200,
+      height: 200,
+      padding: EdgeInsets.fromLTRB(10, 5, 10, 20),
+      child: InkWell(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => DetailScreen(title: name),
+            ),
+          );
+        },
+        onLongPress: () {
+          showConfirmationDialog(context, 'Delete Catalog', 'Do you want to delete this ${name}?', onDelete, name);
+        },
+        child: Card(
+          elevation: 20,
+          margin: EdgeInsets.all(10),
+          color: Colors.lightGreenAccent,
+          child: Center(
+            child:
+              Column(
+                mainAxisAlignment: MainAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  SizedBox(height: 20),
+                  Icon(
+                    icon,
+                    size: 50,
+                  ),
+                  SizedBox(height: 20),
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(0, 0, 0, 10),
+                    child: Text(
+                      name,
+                      style: TextStyle(
+                        fontSize: 20,
+                      ),
+                    ),
+                  ),
+                  Text(detail),
+                ],
+              ),
+          )
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    List<Widget> gridItems = buildGridItems(context);
+
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
           onPressed: () async {
-            String Name = await _showTextEntryDialog(context,catalog) as String;
+
+            catalog = await db.getCatalogNames() as List<String>;
+            String Name =
+                await _showTextEntryDialog(context, catalog) as String;
             if (Name != '') {
-              _Reprint(Name);
-              catalog.add(Name);
+              SqliteService db = SqliteService();
+              CATALOG ctlg = CATALOG(Name);
+              db.createCatalog(ctlg);
+              catalog = await db.getCatalogNames() as List<String>;
+              setState(() {
+              });
             }
           },
           icon: Icon(Icons.list),
         ),
         title: Text(widget.title),
       ),
-      body: _buildGridview(),
+      body: GridView.count(
+        crossAxisCount: 2,
+        children: gridItems,
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
           // String Name = await _showTextEntryDialog(context) as String;
@@ -68,6 +179,30 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
 
       // This trailing comma makes auto-formatting nicer for build methods.
+    );
+  }
+
+  void onCellTap(BuildContext context, String title) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => DetailScreen(title: title),
+      ),
+    );
+  }
+
+  Widget buildCell(BuildContext context, int index) {
+    String title = catalog[index];
+
+    return GestureDetector(
+      onTap: () => onCellTap(context, title),
+      child: GridTile(
+        child: Card(
+          child: Center(
+            child: Text(title),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -110,48 +245,26 @@ Container _buildItemCard(IconData icon, String name, String detail) {
       ));
 }
 
-List<Widget> newItemCard = [
-  _buildItemCard(MyFlutterApp.home, 'All', '24 Tasks'),
-];
-Widget _buildGrid() => GridView.extent(
-      maxCrossAxisExtent: 200,
-      padding: EdgeInsets.all(10),
-      mainAxisSpacing: 1,
-      crossAxisSpacing: 1,
-      children: [
-        _buildItemCard(Icons.co_present, 'All', '24 Tasks'),
-        _buildItemCard(Icons.co_present, 'All', '24 Tasks'),
-        _buildItemCard(Icons.co_present, 'All', '24 Tasks'),
-        _buildItemCard(Icons.co_present, 'All', '24 Tasks'),
-        _buildItemCard(Icons.co_present, 'All', '24 Tasks'),
-        _buildItemCard(Icons.co_present, 'All', '24 Tasks'),
-        _buildItemCard(Icons.co_present, 'All', '24 Tasks'),
-        _buildItemCard(Icons.co_present, 'All', '24 Tasks'),
-        _buildItemCard(Icons.co_present, 'All', '24 Tasks'),
-        _buildItemCard(Icons.co_present, 'All', '24 Tasks'),
-        _buildItemCard(Icons.co_present, 'All', '24 Tasks'),
-        _buildItemCard(Icons.co_present, 'All', '24 Tasks'),
-      ],
-    );
 
-Widget _buildGridview() => GridView.builder(
-      itemCount: newItemCard.length,
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2, // number of columns
-        crossAxisSpacing: 10, // spacing between columns
-        mainAxisSpacing: 10, // spacing between rows
-      ),
-      itemBuilder: (BuildContext context, int index) {
-        return newItemCard[index];
-      },
-    );
+
+// Widget _buildGridview() => GridView.builder(
+//       itemCount: newItemCard.length,
+//       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+//         crossAxisCount: 2, // number of columns
+//         crossAxisSpacing: 10, // spacing between columns
+//         mainAxisSpacing: 10, // spacing between rows
+//       ),
+//       itemBuilder: (BuildContext context, int index) {
+//         return newItemCard[index];
+//       },
+//     );
 
 Route _createRoute(List<String> catalog) {
   return PageRouteBuilder(
     pageBuilder: (BuildContext context,
         Animation<double> animation, //
         Animation<double> secondaryAnimation) {
-      return addtasks( items:catalog);
+      return addtasks(items: catalog);
     },
     transitionsBuilder: (BuildContext context,
         Animation<double> animation, //
@@ -174,9 +287,8 @@ Route _createRoute(List<String> catalog) {
   );
 }
 
-
-
-Future<String> _showTextEntryDialog(BuildContext context, List<String> catalog) async {
+Future<String> _showTextEntryDialog(
+    BuildContext context, List<String> catalog) async {
   String inputText = '';
   String errorMessage = '';
 
@@ -220,7 +332,7 @@ Future<String> _showTextEntryDialog(BuildContext context, List<String> catalog) 
                 child: Text('Select'),
                 onPressed: () {
                   if (inputText.isNotEmpty) {
-                    if(catalog.contains(inputText)){
+                    if (catalog.contains(inputText)) {
                       setState(() {
                         errorMessage = 'Already have this catalog';
                       });
@@ -241,14 +353,4 @@ Future<String> _showTextEntryDialog(BuildContext context, List<String> catalog) 
     },
   );
   return inputText;
-}
-
-class CustomIcons {
-  CustomIcons._();
-
-  static const _kFontFam = 'MyFlutterApp';
-  static const String? _kFontPkg = null;
-
-  static const IconData pill =
-      IconData(0xea60, fontFamily: _kFontFam, fontPackage: _kFontPkg);
 }

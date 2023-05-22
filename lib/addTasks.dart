@@ -2,6 +2,8 @@ import 'package:dropdown_button2/src/dropdown_button2.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import 'database/sqlite_database.dart';
+
 class addtasks extends StatefulWidget {
   addtasks({required this.items});
   final List<String> items;
@@ -40,9 +42,13 @@ class _addtaskseState extends State<addtasks> {
   // late String selectedItem = '';
   // List<String> items = ['Option 1', 'Option 2', 'Option 3'];
   late List<String> items = [];
+
+  late SqliteService _sqliteService;
   @override
   void initState() {
     super.initState();
+    this._sqliteService= SqliteService();
+
     items = widget.items;
     buttonController.text = DateFormat('yyyy-MM-dd').format(selectedDate);
   }
