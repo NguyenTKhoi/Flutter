@@ -1,6 +1,8 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
+
+
 class SqliteService {
   Future<Database> initializeDB() async {
     String path = await getDatabasesPath();
@@ -9,28 +11,18 @@ class SqliteService {
       join(path, 'database.db'),
       onCreate: (database, version) async {
         await database.execute('''
-       CREATE TABLE CATALOG (
-          idCatalog INTEGER PRIMARY KEY,
-          Name_Catalog TEXT
-        )
-      ''');
-
-        await database.execute('''
-        CREATE TABLE TASK (
+       CREATE TABLE IF NOT EXISTS Task (
           idTask INTEGER PRIMARY KEY AUTOINCREMENT,
-          idCatalog INTEGER,
-          FOREIGN KEY (idCatalog) REFERENCES CATALOG(idCatalog)
+          Name_Task TEXT
         )
       ''');
 
         await database.execute('''
-        CREATE TABLE DetailTask (
+        CREATE TABLE Information (
           idTask INTEGER,
-          FOREIGN KEY (idTask) REFERENCES TASK(idTask),
-          Detail TEXT,
-          Day TEXT,
-          Start_Time TEXT,
-          End_Time TEXT
+          detail TEXT,
+          time_start TEXT,
+          FOREIGN KEY (idTask) REFERENCES Task(idTask)
         )
       ''');
       },
@@ -38,102 +30,54 @@ class SqliteService {
     );
   }
 
-  Future<int> createCatalog(CATALOG catalog) async {
-    int result = 0;
-    final Database db = await initializeDB();
-    final id = await db.insert('CATALOG', catalog.toMap(),
-        conflictAlgorithm: ConflictAlgorithm.replace);
-    print(id);
-    return id;
+  Future<void> createTask(Task task) async {
+    final database = await initializeDB();
+    await database.insert('Task', task.toMap());
+    print(task);
   }
 
-  Future<List<Map<String, dynamic>>> getCatalogData() async {
-    final Database db = await initializeDB();
+  Future<List<String>> getAllTaskNames() async {
+    final database = await initializeDB();
+    final List<Map<String, dynamic>> taskData =
+    await database.query('Task', columns: ['Name_Task']);
 
-    // Execute a query to fetch all data from the CATALOG table
-    final List<Map<String, dynamic>> catalogData = await db.query('CATALOG');
-    print(catalogData);
-    return catalogData;
+    final List<String> taskNames =
+    taskData.map((row) => row['Name_Task'] as String).toList();
+    print(taskNames);
+    return taskNames;
   }
 
-  Future<int> deleteAllCatalogData() async {
-    final Database db = await initializeDB();
 
-    // Delete all rows from the CATALOG table
-    final int rowsAffected = await db.delete('CATALOG');
-
-    return rowsAffected;
-  }
-
-  Future<List<String>> getCatalogNames() async {
-    final Database db = await initializeDB();
-
-    // Execute a query to fetch the Name_Catalog column from the CATALOG table
-    final List<Map<String, dynamic>> catalogData =
-        await db.query('CATALOG', columns: ['Name_Catalog']);
-
-    // Extract the Name_Catalog values from the query results
-    final List<String> catalogNames =
-        catalogData.map((row) => row['Name_Catalog'] as String).toList();
-    print(catalogNames);
-    return catalogNames;
-  }
-
-  Future<void> deleteItemByCatalogName(String catalogName) async {
-    final Database db = await initializeDB();
-
-    await db.delete(
-      'CATALOG',
-      where: 'Name_Catalog = ?',
-      whereArgs: [catalogName],
-    );
+  Future<void> deleteTask(String _name) async {
+    final database = await initializeDB();
+    await database.delete('Task', where: 'Name_Task = ?', whereArgs: [_name]);
   }
 }
 
-class CATALOG {
-  // final int idCatalog;
-  final String Name_Catalog;
-  CATALOG(this.Name_Catalog);
-  CATALOG.fromMap(Map<String, dynamic> item)
-      : Name_Catalog = item["Name_Catalog"];
-  Map<String, Object> toMap() {
-    return {"Name_Catalog": Name_Catalog};
+class Task {
+ final String nameTask;
+  Task(this.nameTask);
+
+  Task.fromMap(Map<String, dynamic> item)
+      :  nameTask = item["Name_Task"];
+
+  Map<String, dynamic> toMap() {
+    return {"Name_Task": nameTask};
   }
 }
 
-class TASK {
-  final int idTask;
-  final String idCatalog;
-  TASK(this.idTask, this.idCatalog);
-  TASK.fromMap(Map<String, dynamic> item)
-      : idTask = item["idTask"],
-        idCatalog = item["idCatalog"];
-  Map<String, Object> toMap() {
-    return {"idTask": idTask, "idCatalog": idCatalog};
-  }
-}
+class Information {
 
-class DETAIL_TASK {
-  final int idTask;
-  final String Detail_Task;
-  final String Day;
-  final String Start_Time;
-  final String End_Time;
-  DETAIL_TASK(
-      this.idTask, this.Detail_Task, this.Day, this.Start_Time, this.End_Time);
-  DETAIL_TASK.fromMap(Map<String, dynamic> item)
-      : idTask = item["idTask"],
-        Detail_Task = item["Detail_Task"],
-        Day = item["Day"],
-        Start_Time = item["Start_Time"],
-        End_Time = item["End_Time"];
-  Map<String, Object> toMap() {
-    return {
-      "idTask": idTask,
-      "Detail_Task": Detail_Task,
-      "Day": Day,
-      "Start_Time": Start_Time,
-      "End_Time": End_Time,
-    };
+  final String detail;
+  final String timeStart;
+
+  Information( this.detail, this.timeStart);
+
+  Information.fromMap(Map<String, dynamic> item)
+      : detail = item["detail"],
+        timeStart = item["time_start"];
+
+  Map<String, dynamic> toMap() {
+    return {"detail": detail, "time_start": timeStart};
   }
 }

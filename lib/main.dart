@@ -4,10 +4,9 @@ import 'package:todolist/addTasks.dart';
 import './Icons/flutter_icons.dart';
 import 'database/sqlite_database.dart';
 
-Future<void> main() async {
-  final _sqliteService = SqliteService();
-
+void main() {
   runApp(const MyApp());
+
 }
 
 class MyApp extends StatelessWidget {
@@ -37,14 +36,31 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   SqliteService db = SqliteService();
-
   void deleteItem(int index) {
     setState(() {
       catalog.removeAt(index);
     });
   }
 
-  void showConfirmationDialog(BuildContext context, String title, String message, VoidCallback onConfirm,String name) {
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    final _sqliteService = SqliteService();
+    _sqliteService.initializeDB();
+    initializeCatalog();
+  }
+
+  Future<void> initializeCatalog() async {
+    List<String> catalogData = (await db.getAllTaskNames()).cast<String>();
+    setState(() {
+      catalog = catalogData;
+    });
+
+  }
+
+  void showConfirmationDialog(BuildContext context, String title,
+      String message, VoidCallback onConfirm, String name) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -58,7 +74,7 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
             TextButton(
               onPressed: () {
-                db.deleteItemByCatalogName(name);
+                db.deleteTask(name);
                 onConfirm();
                 Navigator.of(context).pop();
               },
@@ -69,6 +85,7 @@ class _MyHomePageState extends State<MyHomePage> {
       },
     );
   }
+
   List<String> catalog = [];
 
   List<Widget> buildGridItems(BuildContext context) {
@@ -79,7 +96,7 @@ class _MyHomePageState extends State<MyHomePage> {
         Icons.ac_unit, // Replace with the desired icon
         catalog[i],
         'Detail for ${catalog[i]}', // Replace with the desired detail
-            () => deleteItem(i),
+        () => deleteItem(i),
       );
       gridItems.add(item);
     }
@@ -87,7 +104,13 @@ class _MyHomePageState extends State<MyHomePage> {
     return gridItems;
   }
 
-  Container buildItemCard(BuildContext context, IconData icon, String name, String detail , VoidCallback onDelete,) {
+  Container buildItemCard(
+    BuildContext context,
+    IconData icon,
+    String name,
+    String detail,
+    VoidCallback onDelete,
+  ) {
     return Container(
       width: 200,
       height: 200,
@@ -102,15 +125,15 @@ class _MyHomePageState extends State<MyHomePage> {
           );
         },
         onLongPress: () {
-          showConfirmationDialog(context, 'Delete Catalog', 'Do you want to delete this ${name}?', onDelete, name);
+          showConfirmationDialog(context, 'Delete Catalog',
+              'Do you want to delete this ${name}?', onDelete, name);
         },
         child: Card(
-          elevation: 20,
-          margin: EdgeInsets.all(10),
-          color: Colors.lightGreenAccent,
-          child: Center(
-            child:
-              Column(
+            elevation: 20,
+            margin: EdgeInsets.all(10),
+            color: Colors.lightGreenAccent,
+            child: Center(
+              child: Column(
                 mainAxisAlignment: MainAxisAlignment.start,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
@@ -132,8 +155,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   Text(detail),
                 ],
               ),
-          )
-        ),
+            )),
       ),
     );
   }
@@ -141,23 +163,21 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     List<Widget> gridItems = buildGridItems(context);
-
+    infor inforTask = infor('', '', TimeOfDay.now());
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
           onPressed: () async {
-
-            catalog = await db.getCatalogNames() as List<String>;
             String Name =
                 await _showTextEntryDialog(context, catalog) as String;
             if (Name != '') {
               SqliteService db = SqliteService();
-              CATALOG ctlg = CATALOG(Name);
-              db.createCatalog(ctlg);
-              catalog = await db.getCatalogNames() as List<String>;
-              setState(() {
-              });
+              Task _task = Task(Name);
+              db.createTask(_task);
+              catalog = await db.getAllTaskNames() as List<String>;
+              setState(() {});
             }
+
           },
           icon: Icon(Icons.list),
         ),
@@ -169,11 +189,19 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
-          // String Name = await _showTextEntryDialog(context) as String;
-          // if (Name != '') {
-          //   _Reprint(Name);
-          // }
-          Navigator.of(context).push(_createRoute(catalog));
+          Navigator.push(context, _createRoute()).then((result) async {
+            if (result != null && result is infor) {
+              print(result.Title);
+              inforTask = result;
+                if (inforTask.Title != '') {
+                  SqliteService db = SqliteService();
+                  Task _task = Task(inforTask.Title);
+                  db.createTask(_task);
+                  catalog = await db.getAllTaskNames() as List<String>;
+                }
+              setState(() {});
+            }
+          });
         },
         child: Icon(Icons.add),
       ),
@@ -207,64 +235,12 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 
-Container _buildItemCard(IconData icon, String name, String detail) {
-  return Container(
-      width: 200,
-      height: 200,
-      padding: EdgeInsets.fromLTRB(10, 5, 10, 20),
-      child: Card(
-        elevation: 20,
-        margin: EdgeInsets.all(10),
-        color: Colors.lightGreenAccent,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SizedBox(
-              height: 20,
-            ),
-            Icon(
-              icon,
-              size: 50,
-            ),
-            SizedBox(
-              height: 20,
-            ),
-            Padding(
-              padding: EdgeInsets.fromLTRB(0, 0, 0, 10),
-              child: Text(
-                '$name',
-                style: TextStyle(
-                  fontSize: 20,
-                ),
-              ),
-            ),
-            Text('$detail'),
-          ],
-        ),
-      ));
-}
-
-
-
-// Widget _buildGridview() => GridView.builder(
-//       itemCount: newItemCard.length,
-//       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-//         crossAxisCount: 2, // number of columns
-//         crossAxisSpacing: 10, // spacing between columns
-//         mainAxisSpacing: 10, // spacing between rows
-//       ),
-//       itemBuilder: (BuildContext context, int index) {
-//         return newItemCard[index];
-//       },
-//     );
-
-Route _createRoute(List<String> catalog) {
+Route _createRoute() {
   return PageRouteBuilder(
     pageBuilder: (BuildContext context,
         Animation<double> animation, //
         Animation<double> secondaryAnimation) {
-      return addtasks(items: catalog);
+      return addtasks();
     },
     transitionsBuilder: (BuildContext context,
         Animation<double> animation, //
